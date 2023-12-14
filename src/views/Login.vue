@@ -11,7 +11,7 @@ const isLoading = ref(true);
 onMounted(() => {
     var ui = new firebaseui.auth.AuthUI(getAuth());
     ui.start('#firebaseui-auth-container', {
-        signInSuccessUrl: 'http://10.0.0.200:5173/',
+        signInSuccessUrl: import.meta.env.VITE_REDIRECT_URL,
         signInOptions: [
             {
                 provider: firebase.auth.GoogleAuthProvider.PROVIDER_ID,
