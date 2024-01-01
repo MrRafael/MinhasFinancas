@@ -13,6 +13,8 @@ export interface userInfo {
 }
 
 export interface Expense {
+    id?: string;
+    ref?: DocumentReference,
     date: number,
     month: number,
     year: number,

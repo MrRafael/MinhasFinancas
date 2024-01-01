@@ -1,12 +1,15 @@
 <script setup lang="ts">
 import { ref, onBeforeMount } from 'vue';
-import { NCollapse, NCollapseItem, NList, NThing, NListItem, NTag, NAvatar, NSpace, NInputNumber } from 'naive-ui';
-import { getDataAnd, getDataByDocId } from '@/firebase/firestore';
+import { NCollapse, NCollapseItem, NList, NThing, NListItem, NTag, NAvatar, NSpace, NInputNumber, NIcon, useDialog } from 'naive-ui';
+import { deleteData, getDataAnd, getDataByDocId } from '@/firebase/firestore';
 import { getFirestore, updateDoc, where } from 'firebase/firestore';
 import type { CollaboratorResult, Expense, MonthGroup, PersonalInformation } from '@/types';
 import { useMonthStore } from '@/stores/currentMonth';
 import { useUserStore } from '@/stores/user';
 import { parseCurrency, formatCurrency } from '../util'
+import { DeleteOutlineFilled } from '@vicons/material';
+
+const dialog = useDialog();
 
 const db = getFirestore();
 const sUser = useUserStore();
@@ -28,7 +31,7 @@ async function syncExpenses(month: number | null = null) {
     expenses.value = [];
 
     const monthGroup = await getDataAnd<MonthGroup>(db, 'MonthGroup', [
-        where('year', '==', new Date().getFullYear()),
+        where('year', '==', 2023),
         where('month', '==', month ? month : sMonth.month),
         where('expenseGroup', '==', personalInformation.value?.currentGroup),
     ]) as MonthGroup[];
@@ -43,6 +46,7 @@ async function syncExpenses(month: number | null = null) {
             where('expenseGroupMonth', '==', currentMonthGroup.value.ref),
             where('readers', 'array-contains', sUser.user?.uid),
         ]) as Expense[];
+
     }
 }
 
@@ -93,18 +97,33 @@ function sum(arrayToSum: number[]): number {
     })
 }
 
+function deleteExpense(expenseId: string){
+    dialog.warning({
+        title: 'Deletar Despesa?',
+        positiveText: 'Confirmar',
+        negativeText: 'Não',
+        onPositiveClick: async () => {
+            await deleteData(db, 'Expense', expenseId)
+            await syncExpenses();
+            calcCollabResults();
+        },
+    });
+}
+
 </script>
 
 <template>
     <div>
         <div v-for="(collabResult, index) in collabsResult" v-bind:key="index"
-                class="display-flex direction-column person-result" :class="{ 'need-to-receive': collabResult.result <= 0, 'need-to-pay': collabResult.result > 0 }">
-                <div class="display-flex justify-between">
-                    <n-avatar :src="collabResult.collaborator.photoUrl" round>
-                    </n-avatar>
-                    <span style="margin-left: 1rem;">{{ (collabResult.result > 0 ? 'Pagar: ' : 'Receber: ') + formatCurrency(Math.abs(collabResult.result)) }}</span>
-                </div>
+            class="display-flex direction-column person-result"
+            :class="{ 'need-to-receive': collabResult.result <= 0, 'need-to-pay': collabResult.result > 0 }">
+            <div class="display-flex justify-between">
+                <n-avatar :src="collabResult.collaborator.photoUrl" round>
+                </n-avatar>
+                <span style="margin-left: 1rem;">{{ (collabResult.result > 0 ? 'Pagar: ' : 'Receber: ') +
+                    formatCurrency(Math.abs(collabResult.result)) }}</span>
             </div>
+        </div>
     </div>
     <n-collapse>
         <n-collapse-item title="Dados Mês" name="1">
@@ -114,7 +133,8 @@ function sum(arrayToSum: number[]): number {
                     <n-avatar :src="collab.photoUrl" round>
                     </n-avatar>
                     <div>
-                        <p v-if="collab.uid !== sUser.user?.uid">Salario: {{ `${ formatCurrency(collab.remuneration)}` }}</p>
+                        <p v-if="collab.uid !== sUser.user?.uid">Salario: {{ `${formatCurrency(collab.remuneration)}` }}
+                        </p>
                         <n-input-number v-if="collab.uid === sUser.user?.uid" class="form-input" :parse="parseCurrency"
                             :format="formatCurrency" placeholder="Salario" v-model:value="collab.remuneration"
                             @blur="saveRemuneration" />
@@ -139,14 +159,18 @@ function sum(arrayToSum: number[]): number {
                             </n-avatar>
                         </template>
                         <template #description>
-                            <n-space size="small" style="margin-top: 4px">
-                                <n-tag :bordered="false" type="info" size="small">
-                                    {{ expense.category }}
-                                </n-tag>
-                                <n-tag :bordered="false" type="info" size="small">
-                                    {{ expense.halfHalfDivision ? 'Nominal' : 'Percentual' }}
-                                </n-tag>
-                            </n-space>
+                            <div class="display-flex justify-between align-center">
+                                <n-space size="small" style="margin-top: 4px">
+                                    <n-tag :bordered="false" type="info" size="small">
+                                        {{ expense.category }}
+                                    </n-tag>
+                                    <n-tag :bordered="false" type="info" size="small">
+                                        {{ expense.halfHalfDivision ? 'Nominal' : 'Percentual' }}
+                                    </n-tag>
+                                </n-space>
+                                <n-icon v-if="expense.ownerUid === sUser.user?.uid" @click="deleteExpense(expense.id!)" size="large" :component="DeleteOutlineFilled" class="cursor-pointer" />
+                            </div>
+
                         </template>
                         <div class="display-flex justify-between f-size">
                             <div>{{ expense.description }}</div>
@@ -164,12 +188,12 @@ function sum(arrayToSum: number[]): number {
     font-size: 18px;
 }
 
-.person-data{
+.person-data {
     padding: 1rem 0;
     border-bottom: 1px rgb(212, 212, 212) solid;
 }
 
-.person-result{
+.person-result {
     padding: 1rem 0;
     margin-bottom: 1rem;
     align-items: center;
@@ -177,11 +201,10 @@ function sum(arrayToSum: number[]): number {
     border-radius: 5px;
 }
 
-.need-to-pay{
-    background-color:rgba(208, 48, 80, 0.16);
+.need-to-pay {
+    background-color: rgba(208, 48, 80, 0.16);
 }
 
-.need-to-receive{
+.need-to-receive {
     background-color: rgba(24, 160, 88, 0.16);
-}
-</style>
+}</style>

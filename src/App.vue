@@ -18,7 +18,7 @@ function updateMonth(m: number) {
 
 const displayMode = ref(getPWADisplayMode());
 
-const showApp = computed(() => displayMode.value !== 'browser');
+const showApp = true;
 const installEvent = ref<any>();
 
 function getPWADisplayMode() {

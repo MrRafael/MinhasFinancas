@@ -64,6 +64,7 @@ header {
     left: 0;
     top: 0;
     padding: 0 2rem;
+    z-index: 1;
 }
 .grid{
     height: 100%;
