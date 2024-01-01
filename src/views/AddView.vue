@@ -1,14 +1,14 @@
 <script setup lang="ts">
-import { NForm, NFormItem, NDatePicker, NInput, NInputNumber, NSwitch, NGrid, NGridItem, type FormInst, NButton, useMessage } from 'naive-ui'
-import { onBeforeMount, ref } from 'vue';
-import { getFirestore, collection, addDoc, DocumentReference, where } from 'firebase/firestore'
-import type { Expense, ExpenseGroup, MonthGroup, PersonalInformation } from '@/types';
-import { addData, getDataAnd, getDataByDocId, getDataByRef } from '@/firebase/firestore';
-import { parseCurrency, formatCurrency } from '../util'
-import type { User } from 'firebase/auth';
 import { getUser } from '@/firebase';
-import { useUserStore } from '@/stores/user';
+import { addData, getDataAnd, getDataByDocId, getDataByRef } from '@/firebase/firestore';
 import { useMonthStore } from '@/stores/currentMonth';
+import { useUserStore } from '@/stores/user';
+import type { Expense, ExpenseGroup, MonthGroup, PersonalInformation } from '@/types';
+import type { User } from 'firebase/auth';
+import { DocumentReference, addDoc, collection, getFirestore, where } from 'firebase/firestore';
+import { NButton, NDatePicker, NForm, NFormItem, NGrid, NGridItem, NInput, NInputNumber, NSwitch, useMessage, type FormInst } from 'naive-ui';
+import { onBeforeMount, ref } from 'vue';
+import { formatCurrency, parseCurrency } from '../util';
 
 const db = getFirestore();
 const message = useMessage();
@@ -70,14 +70,14 @@ onBeforeMount(async () => {
     await getCurrentGroup(personalInformation.value?.currentGroup as DocumentReference)
 });
 
-async function getMonthGroup(month: number, year: number): Promise<DocumentReference>{
-    const currentMonthGroup = await getDataAnd(db, 'MonthGroup',[
+async function getMonthGroup(month: number, year: number): Promise<DocumentReference> {
+    const currentMonthGroup = await getDataAnd(db, 'MonthGroup', [
         where('expenseGroup', '==', currentGroup.value?.ref!),
         where('month', '==', month),
         where('year', '==', year),
     ]) as MonthGroup[];
 
-    if(currentMonthGroup.length === 0) {
+    if (currentMonthGroup.length === 0) {
         await addData(db, 'MonthGroup', {
             collaborators: await getCollaboratorsData(),
             expenseGroup: currentGroup.value?.ref,
@@ -85,13 +85,13 @@ async function getMonthGroup(month: number, year: number): Promise<DocumentRefer
             month,
             year
         })
-        return getMonthGroup(month,year);
+        return getMonthGroup(month, year);
     }
 
     return currentMonthGroup[0].ref;
 }
 
-async function getCollaboratorsData(){
+async function getCollaboratorsData() {
     const collabs = [];
     for (let index = 0; index < currentGroup.value?.collaboratorsData.length!; index++) {
         const personalInfo = await getDataByDocId(db, 'PersonalInformation', currentGroup.value?.collaboratorsData[index].uid!) as PersonalInformation
@@ -116,6 +116,10 @@ async function save() {
         expense.value.ownerUid = sUser.user?.uid!;
         expense.value.ownerPhotoUrl = sUser.user?.photoURL!;
 
+        const dt = new Date(expense.value.date);
+        expense.value.month = dt.getMonth() + 1;
+        expense.value.year = dt.getFullYear();
+
         await addDoc(collection(db, 'Expense'), { ...expense.value, description: multiplePayment.value && paymentTimes.value > 1 ? expense.value.description + ` 1/${paymentTimes.value}` : expense.value.description });
 
         if (multiplePayment.value && paymentTimes.value > 1) {
@@ -125,7 +129,7 @@ async function save() {
                 expense.value.month = date.getMonth() + 1;
                 expense.value.year = date.getFullYear();
                 expense.value.expenseGroupMonth = await getMonthGroup(expense.value.month, expense.value.year);
-                await addDoc(collection(db, 'Expense'), { ...expense.value, description: expense.value.description + ` ${index+1}/${paymentTimes.value} ` });
+                await addDoc(collection(db, 'Expense'), { ...expense.value, description: expense.value.description + ` ${index + 1}/${paymentTimes.value} ` });
             }
 
             multiplePayment.value = false;
@@ -134,7 +138,7 @@ async function save() {
 
         expense.value = startExpense();
         message.success('Despesa adicionada com sucesso');
-    } catch(e) {
+    } catch (e) {
         message.error('Erro ao adicionar despesa');
     }
     isSaving.value = false;
