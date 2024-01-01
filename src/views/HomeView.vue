@@ -18,6 +18,7 @@ const personalInformation = ref<PersonalInformation>();
 
 sMonth.$onAction(async (x) => {
     await syncExpenses(x.args[0]);
+    calcCollabResults();
 });
 
 const expenses = ref<Expense[]>();
@@ -47,6 +48,7 @@ async function syncExpenses(month: number | null = null) {
             where('readers', 'array-contains', sUser.user?.uid),
         ]) as Expense[];
 
+        expenses.value = expenses.value.sort((a,b) => b.date - a.date);
     }
 }
 
