@@ -5,6 +5,7 @@ import { deleteData, getDataAnd, getDataByDocId } from '@/firebase/firestore';
 import { getFirestore, updateDoc, where } from 'firebase/firestore';
 import type { CollaboratorResult, Expense, MonthGroup, PersonalInformation } from '@/types';
 import { useMonthStore } from '@/stores/currentMonth';
+import { useYearStore } from '@/stores/currentYear';
 import { useUserStore } from '@/stores/user';
 import { parseCurrency, formatCurrency } from '../util'
 import { DeleteOutlineFilled } from '@vicons/material';
@@ -14,6 +15,7 @@ const dialog = useDialog();
 const db = getFirestore();
 const sUser = useUserStore();
 const sMonth = useMonthStore();
+const sYear = useYearStore();
 const personalInformation = ref<PersonalInformation>();
 
 sMonth.$onAction(async (x) => {
@@ -30,9 +32,8 @@ const totalAmount = ref(0);
 async function syncExpenses(month: number | null = null) {
     currentMonthGroup.value = null;
     expenses.value = [];
-
     const monthGroup = await getDataAnd<MonthGroup>(db, 'MonthGroup', [
-        where('year', '==', 2023),
+        where('year', '==', sYear.year),
         where('month', '==', month ? month : sMonth.month),
         where('expenseGroup', '==', personalInformation.value?.currentGroup),
     ]) as MonthGroup[];
@@ -48,7 +49,7 @@ async function syncExpenses(month: number | null = null) {
             where('readers', 'array-contains', sUser.user?.uid),
         ]) as Expense[];
 
-        expenses.value = expenses.value.sort((a,b) => b.date - a.date);
+        expenses.value = expenses.value.sort((a, b) => b.date - a.date);
     }
 }
 
@@ -99,7 +100,7 @@ function sum(arrayToSum: number[]): number {
     })
 }
 
-function deleteExpense(expenseId: string){
+function deleteExpense(expenseId: string) {
     dialog.warning({
         title: 'Deletar Despesa?',
         positiveText: 'Confirmar',
@@ -170,7 +171,8 @@ function deleteExpense(expenseId: string){
                                         {{ expense.halfHalfDivision ? 'Nominal' : 'Percentual' }}
                                     </n-tag>
                                 </n-space>
-                                <n-icon v-if="expense.ownerUid === sUser.user?.uid" @click="deleteExpense(expense.id!)" size="large" :component="DeleteOutlineFilled" class="cursor-pointer" />
+                                <n-icon v-if="expense.ownerUid === sUser.user?.uid" @click="deleteExpense(expense.id!)"
+                                    size="large" :component="DeleteOutlineFilled" class="cursor-pointer" />
                             </div>
 
                         </template>
@@ -209,4 +211,5 @@ function deleteExpense(expenseId: string){
 
 .need-to-receive {
     background-color: rgba(24, 160, 88, 0.16);
-}</style>
+}
+</style>
