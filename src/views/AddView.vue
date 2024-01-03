@@ -111,7 +111,6 @@ const isSaving = ref(false);
 async function save() {
     isSaving.value = true;
     try {
-        expense.value.expenseGroupMonth = await getMonthGroup(expense.value.month, expense.value.year);
         expense.value.readers = currentGroup.value?.collaborators!;
         expense.value.ownerUid = sUser.user?.uid!;
         expense.value.ownerPhotoUrl = sUser.user?.photoURL!;
@@ -119,6 +118,7 @@ async function save() {
         const dt = new Date(expense.value.date);
         expense.value.month = dt.getMonth() + 1;
         expense.value.year = dt.getFullYear();
+        expense.value.expenseGroupMonth = await getMonthGroup(expense.value.month, expense.value.year);
 
         await addDoc(collection(db, 'Expense'), { ...expense.value, description: multiplePayment.value && paymentTimes.value > 1 ? expense.value.description + ` 1/${paymentTimes.value}` : expense.value.description });
 
