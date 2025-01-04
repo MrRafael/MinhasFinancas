@@ -11,6 +11,7 @@ const isLoading = ref(true);
 onMounted(() => {
     var ui = new firebaseui.auth.AuthUI(getAuth());
     ui.start('#firebaseui-auth-container', {
+        signInFlow: 'popup',
         signInSuccessUrl: import.meta.env.VITE_REDIRECT_URL,
         signInOptions: [
             {
